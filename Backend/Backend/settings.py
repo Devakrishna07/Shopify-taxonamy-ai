@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'classification',
     'attributes',
     'reviews',
+    'processing',
 ]
 
 MIDDLEWARE = [
