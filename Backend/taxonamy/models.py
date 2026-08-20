@@ -8,17 +8,20 @@ class TaxonomyCategory(models.Model):
     )
 
     name = models.CharField(
-        max_length=255
+        max_length=255,
+        default=""
     )
 
     full_name = models.TextField(
-        blank=True
+        blank=True,
+        default=""
     )
 
     parent_id = models.CharField(
         max_length=255,
         blank=True,
-        null=True
+        null=True,
+        default=None
     )
 
     level = models.PositiveIntegerField(
@@ -60,11 +63,13 @@ class TaxonomyAttribute(models.Model):
     )
 
     name = models.CharField(
-        max_length=255
+        max_length=255,
+        default=""
     )
 
     description = models.TextField(
-        blank=True
+        blank=True,
+        default=""
     )
 
     created_at = models.DateTimeField(
@@ -92,7 +97,8 @@ class TaxonomyValue(models.Model):
     )
 
     name = models.CharField(
-        max_length=255
+        max_length=255,
+        default=""
     )
 
     created_at = models.DateTimeField(
@@ -134,9 +140,8 @@ class CategoryAttribute(models.Model):
     def __str__(self):
         return f"{self.category} - {self.attribute}"
 
-    # classification result
-class ProductTaxonomyResult(models.Model):
 
+class ProductTaxonomyResult(models.Model):
     product = models.OneToOneField(
         "products.Product",
         on_delete=models.CASCADE,
@@ -147,16 +152,16 @@ class ProductTaxonomyResult(models.Model):
         TaxonomyCategory,
         on_delete=models.SET_NULL,
         null=True,
-        blank=True,
-        related_name="classified_products"
+        blank=True
     )
 
     confidence = models.FloatField(
-        default=0
+        default=0.0
     )
 
     matched_text = models.TextField(
-        blank=True
+        blank=True,
+        default=""
     )
 
     status = models.CharField(
@@ -177,4 +182,3 @@ class ProductTaxonomyResult(models.Model):
 
     def __str__(self):
         return f"{self.product_id} - {self.category}"
-

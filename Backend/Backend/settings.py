@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'products',
     'imports',
     'taxonamy',
+    'classification',
 ]
 
 MIDDLEWARE = [
