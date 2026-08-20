@@ -5,18 +5,20 @@ from .models import (
     TaxonomyAttribute,
     TaxonomyValue,
     CategoryAttribute,
+    ProductTaxonomyResult,
 )
 
 
 @admin.register(TaxonomyCategory)
 class TaxonomyCategoryAdmin(admin.ModelAdmin):
+
     list_display = (
         "shopify_id",
         "name",
-        "parent",
+        "full_name",
         "level",
+        "is_root",
         "is_leaf",
-        "taxonomy_version",
     )
 
     search_fields = (
@@ -26,13 +28,16 @@ class TaxonomyCategoryAdmin(admin.ModelAdmin):
     )
 
     list_filter = (
+        "level",
+        "is_root",
         "is_leaf",
-        "taxonomy_version",
+        "is_archived",
     )
 
 
 @admin.register(TaxonomyAttribute)
 class TaxonomyAttributeAdmin(admin.ModelAdmin):
+
     list_display = (
         "shopify_id",
         "name",
@@ -46,30 +51,49 @@ class TaxonomyAttributeAdmin(admin.ModelAdmin):
 
 @admin.register(TaxonomyValue)
 class TaxonomyValueAdmin(admin.ModelAdmin):
+
     list_display = (
         "shopify_id",
+        "name",
         "attribute",
-        "value",
     )
 
     search_fields = (
         "shopify_id",
-        "value",
-    )
-
-    list_filter = (
-        "attribute",
+        "name",
     )
 
 
 @admin.register(CategoryAttribute)
 class CategoryAttributeAdmin(admin.ModelAdmin):
+
     list_display = (
         "category",
         "attribute",
+        "required",
+    )
+
+    list_filter = (
+        "required",
+    )
+
+
+@admin.register(ProductTaxonomyResult)
+class ProductTaxonomyResultAdmin(admin.ModelAdmin):
+
+    list_display = (
+        "product",
+        "category",
+        "confidence",
+        "status",
+        "created_at",
+    )
+
+    list_filter = (
+        "status",
     )
 
     search_fields = (
-        "category__name",
-        "attribute__name",
+        "product__id",
+        "matched_text",
     )
