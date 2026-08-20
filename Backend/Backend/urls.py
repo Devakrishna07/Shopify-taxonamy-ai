@@ -11,7 +11,7 @@ urlpatterns = [
     path("api/classification/", include("classification.urls")),
      path('api/attributes/',include('attributes.urls')),
      path("api/reviews/",include("reviews.urls")),
-      path("api/jobs/",include("processing.urls")),
+      path("api/processing/",include("processing.urls")),
     path("api/results/",include("results.urls")),
 ]
 

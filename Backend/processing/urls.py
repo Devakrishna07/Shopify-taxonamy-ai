@@ -12,18 +12,18 @@ urlpatterns = [
     path(
         "",
         ProcessingJobListCreateView.as_view(),
-        name="processing-jobs"
+        name="processing-jobs",
     ),
 
     path(
         "<int:pk>/",
         ProcessingJobDetailView.as_view(),
-        name="processing-job-detail"
+        name="processing-job-detail",
     ),
 
     path(
         "<int:pk>/start/",
         ProcessingJobStartView.as_view(),
-        name="processing-job-start"
+        name="processing-job-start",
     ),
 ]

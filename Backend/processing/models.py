@@ -29,24 +29,41 @@ class ProcessingJob(models.Model):
         default="PENDING"
     )
 
-    # Keep this nullable because not every processing job
-    # necessarily originates from an import.
+    # Optional source import.
     import_id = models.BigIntegerField(
         null=True,
         blank=True
     )
 
-    total_items = models.PositiveIntegerField(default=0)
+    # Batch statistics.
+    total_items = models.PositiveIntegerField(
+        default=0
+    )
 
-    completed_items = models.PositiveIntegerField(default=0)
+    completed_items = models.PositiveIntegerField(
+        default=0
+    )
 
-    failed_items = models.PositiveIntegerField(default=0)
+    failed_items = models.PositiveIntegerField(
+        default=0
+    )
 
+    # Last successfully or unsuccessfully attempted product.
     last_processed_id = models.BigIntegerField(
         null=True,
         blank=True
     )
 
+    # Retry configuration.
+    max_retries = models.PositiveIntegerField(
+        default=3
+    )
+
+    retry_count = models.PositiveIntegerField(
+        default=0
+    )
+
+    # Last batch error.
     error_message = models.TextField(
         null=True,
         blank=True
@@ -72,13 +89,26 @@ class ProcessingJob(models.Model):
 
     class Meta:
         db_table = "processing_jobs"
-        ordering = ["-created_at"]
+
+        ordering = [
+            "-created_at"
+        ]
 
         indexes = [
-            models.Index(fields=["status"]),
-            models.Index(fields=["job_type"]),
-            models.Index(fields=["import_id"]),
+            models.Index(
+                fields=["status"]
+            ),
+            models.Index(
+                fields=["job_type"]
+            ),
+            models.Index(
+                fields=["import_id"]
+            ),
         ]
 
     def __str__(self):
-        return f"Job {self.id} - {self.job_type} - {self.status}"
+        return (
+            f"Job {self.id} - "
+            f"{self.job_type} - "
+            f"{self.status}"
+        )

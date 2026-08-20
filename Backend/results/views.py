@@ -6,6 +6,16 @@ from rest_framework.filters import SearchFilter, OrderingFilter
 
 from classification.models import ClassificationResult
 from .serializers import ResultSerializer
+from django.utils import timezone
+
+from rest_framework import generics, status
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
+from classification.models import ClassificationResult
+
+from .models import DecisionReview
+from .serializers import ResultSerializer
 
 
 class ResultsListView(generics.ListAPIView):
@@ -143,3 +153,65 @@ class ResultsSummaryView(APIView):
             "failed": failed,
             "average_confidence": average_confidence,
         })
+
+class ResultApproveView(APIView):
+
+    def post(self, request, pk):
+
+        result = (
+            ClassificationResult.objects
+            .select_related("product")
+            .filter(pk=pk)
+            .first()
+        )
+
+        if not result:
+            return Response(
+                {"detail": "Result not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        decision = getattr(
+            result,
+            "decision_review",
+            None,
+        )
+
+        if not decision:
+            return Response(
+                {
+                    "detail": (
+                        "Decision record not found."
+                    )
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        decision.review_action = (
+            DecisionReview.APPROVE
+        )
+
+        decision.final_category_id = (
+            result.id
+        )
+
+        decision.approved_by = (
+            request.user
+            if request.user.is_authenticated
+            else None
+        )
+
+        decision.approved_at = timezone.now()
+
+        decision.review_comment = (
+            request.data.get(
+                "comment",
+                ""
+            )
+        )
+
+        decision.save()
+
+        return Response(
+            ResultSerializer(result).data
+        )

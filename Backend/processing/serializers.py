@@ -17,12 +17,19 @@ class ProcessingJobSerializer(
             "job_type",
             "status",
             "import_id",
+
             "total_items",
             "completed_items",
             "failed_items",
+
+            "max_retries",
+            "retry_count",
+
             "last_processed_id",
             "error_message",
+
             "progress",
+
             "started_at",
             "completed_at",
             "created_at",
@@ -31,17 +38,22 @@ class ProcessingJobSerializer(
 
         read_only_fields = fields
 
-    def get_progress(self, obj):
-
+    def get_progress(
+        self,
+        obj,
+    ):
         if obj.total_items == 0:
             return 0
 
         processed = (
-            obj.completed_items +
-            obj.failed_items
+            obj.completed_items
+            + obj.failed_items
         )
 
         return round(
-            (processed / obj.total_items) * 100,
-            2
+            (
+                processed
+                / obj.total_items
+            ) * 100,
+            2,
         )
