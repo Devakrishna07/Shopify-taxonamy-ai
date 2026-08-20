@@ -8,5 +8,7 @@ urlpatterns = [
     path('api/products/', include('products.urls')),
     path("api/imports/", include("imports.urls")),
     path("api/taxonamy/",include("taxonamy.urls")),
+    path("api/classification/", include("classification.urls")),
+     path('api/attributes/',include('attributes.urls')),
 ]
 
