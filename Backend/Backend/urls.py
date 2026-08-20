@@ -10,5 +10,7 @@ urlpatterns = [
     path("api/taxonamy/",include("taxonamy.urls")),
     path("api/classification/", include("classification.urls")),
      path('api/attributes/',include('attributes.urls')),
+     path("api/reviews/",include("reviews.urls")
+),
 ]
 

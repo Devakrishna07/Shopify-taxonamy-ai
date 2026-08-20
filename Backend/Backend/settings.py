@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'taxonamy',
     'classification',
     'attributes',
+    'reviews',
 ]
 
 MIDDLEWARE = [
