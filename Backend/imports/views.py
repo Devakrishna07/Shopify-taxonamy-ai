@@ -17,7 +17,6 @@ class ImportUploadView(APIView):
 
     def post(self, request):
 
-        # DEBUG
         print("================================")
         print("REQUEST CONTENT TYPE:")
         print(request.content_type)
@@ -29,6 +28,10 @@ class ImportUploadView(APIView):
         print(request.data)
 
         print("================================")
+
+        # ----------------------------------------------------
+        # Get uploaded file
+        # ----------------------------------------------------
 
         uploaded_file = request.FILES.get("file")
 
@@ -45,6 +48,10 @@ class ImportUploadView(APIView):
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+        # ----------------------------------------------------
+        # Validate extension
+        # ----------------------------------------------------
 
         filename = uploaded_file.name.lower()
 
@@ -63,6 +70,10 @@ class ImportUploadView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        # ----------------------------------------------------
+        # Create import job
+        # ----------------------------------------------------
+
         import_job = ImportJob.objects.create(
             file_name=uploaded_file.name,
             status="PENDING",
@@ -70,9 +81,24 @@ class ImportUploadView(APIView):
 
         try:
 
+            # ------------------------------------------------
+            # Process uploaded file
+            # ------------------------------------------------
+
             process_import(
                 import_job,
                 uploaded_file,
+            )
+
+        except ValueError as error:
+
+            return Response(
+                {
+                    "import_id": import_job.id,
+                    "status": "FAILED",
+                    "error": str(error),
+                },
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         except Exception as error:
@@ -86,8 +112,14 @@ class ImportUploadView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
+        # ----------------------------------------------------
+        # Success
+        # ----------------------------------------------------
+
         return Response(
-            ImportJobSerializer(import_job).data,
+            ImportJobSerializer(
+                import_job
+            ).data,
             status=status.HTTP_201_CREATED,
         )
 
@@ -112,5 +144,7 @@ class ImportDetailView(APIView):
             )
 
         return Response(
-            ImportJobSerializer(import_job).data
+            ImportJobSerializer(
+                import_job
+            ).data
         )

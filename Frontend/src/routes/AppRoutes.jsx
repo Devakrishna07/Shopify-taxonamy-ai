@@ -1,5 +1,7 @@
 import { Routes, Route } from "react-router-dom";
 import Dashboard from "../features/dashboard/Dashboard";
+import ImportsPage from "../features/imports/ImportsPage";
+import TaxonomyPage from "../features/taxonomy/TaxonomyPage";
 
 function PlaceholderPage({ title }) {
   return (
@@ -22,13 +24,18 @@ export default function AppRoutes() {
 
       <Route
         path="/imports"
-        element={<PlaceholderPage title="Import Workspace" />}
+        element={<ImportsPage />}
       />
 
       <Route
         path="/taxonomy"
-        element={<PlaceholderPage title="Taxonomy Explorer" />}
+        element={<TaxonomyPage/>}
       />
+
+      <Route
+        path="/products/:id/classification"
+        element={<ClassificationPage />}
+        />
 
       <Route
         path="/processing"

@@ -3,7 +3,7 @@ export const API_ENDPOINTS = {
     list: "/processing/",
     create: "/processing/",
     detail: (id) => `/processing/${id}/`,
-    start: (id) => `/processing/${id}/start/`
+    start: (id) => `/processing/${id}/start/`,
   },
 
   results: {
@@ -11,27 +11,40 @@ export const API_ENDPOINTS = {
     detail: (id) => `/results/${id}/`,
     approve: (id) => `/results/${id}/approve/`,
     reject: (id) => `/results/${id}/reject/`,
-    reclassify: (id) => `/results/${id}/reclassify/`
+    reclassify: (id) => `/results/${id}/reclassify/`,
   },
 
   imports: {
     list: "/imports/",
-    create: "/imports/"
+    create: "/imports/",
+    detail: (id) => `/imports/${id}/`,
   },
 
-  taxonomy: {
-    list: "/taxonomy/"
+ taxonomy: {
+    categories: "/taxonomy/categories/",
+    search: "/taxonomy/search/",
+    product: (productId) =>
+      `/taxonomy/products/${productId}/`,
+    classifyProduct: (productId) =>
+      `/taxonomy/products/${productId}/classify/`,
+    bulkClassify: "/taxonomy/products/classify/",
   },
 
   classification: {
-    list: "/classification/"
+    detail: (id) => `/products/${id}/classification/`,
+  },
+
+  classification: {
+    list: "/classification/",
   },
 
   attributes: {
-    list: "/attributes/"
+    list: "/attributes/",
   },
 
   reviews: {
-    list: "/reviews/"
-  }
+    list: "/reviews/",
+  },
 };
+
+export default API_ENDPOINTS;

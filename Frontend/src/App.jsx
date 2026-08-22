@@ -3,6 +3,7 @@ import { Routes, Route } from "react-router-dom";
 
 import AppShell from "./components/layout/AppShell";
 import Dashboard from "./features/dashboard/Dashboard";
+import ImportsPage from "./features/imports/ImportsPage";
 
 function PlaceholderPage({ title }) {
   return (
@@ -27,7 +28,7 @@ export default function App() {
 
           <Route
             path="/imports"
-            element={<PlaceholderPage title="Import Workspace" />}
+            element={<ImportsPage />}
           />
 
           <Route

@@ -1,44 +1,105 @@
-import axios from "axios";
+const API_BASE_URL = (
+  import.meta.env.VITE_API_BASE_URL ||
+  "http://127.0.0.1:8000/api"
+).replace(/\/+$/, "");
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+function buildUrl(endpoint) {
+  const normalizedEndpoint = endpoint.startsWith("/")
+    ? endpoint
+    : `/${endpoint}`;
 
-const apiClient = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    "Content-Type": "application/json"
-  },
-  timeout: 30000
-});
+  return `${API_BASE_URL}${normalizedEndpoint}`;
+}
 
-apiClient.interceptors.request.use(
-  (config) => {
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
+async function request(endpoint, options = {}) {
+  const url = buildUrl(endpoint);
+
+  const isFormData = options.body instanceof FormData;
+
+  const headers = {
+    ...(isFormData
+      ? {}
+      : {
+          "Content-Type": "application/json",
+        }),
+    ...(options.headers || {}),
+  };
+
+  const response = await fetch(url, {
+    ...options,
+    headers,
+  });
+
+  let data = null;
+
+  const contentType = response.headers.get("content-type");
+
+  if (contentType?.includes("application/json")) {
+    data = await response.json();
+  } else {
+    data = await response.text();
   }
-);
 
-apiClient.interceptors.response.use(
-  (response) => {
-    return response;
-  },
-  (error) => {
-    if (error.response) {
-      console.error(
-        "API Error:",
-        error.response.status,
-        error.response.data
-      );
-    } else if (error.request) {
-      console.error("API Network Error:", error.message);
-    } else {
-      console.error("API Request Error:", error.message);
-    }
+  if (!response.ok) {
+    const errorMessage =
+      typeof data === "object" && data !== null
+        ? data.detail ||
+          data.message ||
+          data.error ||
+          `Request failed with status ${response.status}`
+        : data ||
+          `Request failed with status ${response.status}`;
 
-    return Promise.reject(error);
+    const error = new Error(errorMessage);
+
+    error.status = response.status;
+    error.data = data;
+    error.url = url;
+
+    throw error;
   }
-);
+
+  return data;
+}
+
+export const apiClient = {
+  get(endpoint, options = {}) {
+    return request(endpoint, {
+      ...options,
+      method: "GET",
+    });
+  },
+
+  post(endpoint, body, options = {}) {
+    return request(endpoint, {
+      ...options,
+      method: "POST",
+      body,
+    });
+  },
+
+  patch(endpoint, body, options = {}) {
+    return request(endpoint, {
+      ...options,
+      method: "PATCH",
+      body: JSON.stringify(body),
+    });
+  },
+
+  put(endpoint, body, options = {}) {
+    return request(endpoint, {
+      ...options,
+      method: "PUT",
+      body: JSON.stringify(body),
+    });
+  },
+
+  delete(endpoint, options = {}) {
+    return request(endpoint, {
+      ...options,
+      method: "DELETE",
+    });
+  },
+};
 
 export default apiClient;

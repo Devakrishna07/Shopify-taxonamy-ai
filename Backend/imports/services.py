@@ -1,587 +1,394 @@
+import csv
+import io
+from datetime import datetime
+
 import pandas as pd
 
-from django.utils import timezone
-
-from .models import ImportRowError
+from .models import ImportJob, ImportRowError
 
 
 # ============================================================
-# COLUMN MAPPING
+# COLUMN ALIASES
+# ============================================================
+#
+# The frontend/import module uses a standard internal field
+# called "title".
+#
+# Your actual Excel file uses:
+#
+#     Product Name
+#
+# Therefore we normalize Product Name -> title.
+#
+# Additional aliases are included so future CSV/XLSX files
+# can use common variations.
 # ============================================================
 
-COLUMN_MAPPING = {
-    # Product ID
-    "id": "external_product_id",
-    "product_id": "external_product_id",
-    "external_product_id": "external_product_id",
-
-    # SKU
-    "sku": "sku",
-
-    # Title
+COLUMN_ALIASES = {
+    "product name": "title",
+    "product_name": "title",
+    "productname": "title",
     "title": "title",
-    "product_title": "title",
-    "name": "title",
 
-    # Description
-    "description": "description",
+    "product number": "product_number",
+    "product_number": "product_number",
+    "sku": "product_number",
 
-    # Brand
-    "brand": "brand",
+    "model number": "model_number",
+    "model_number": "model_number",
 
-    # Product Type
-    "product_type": "product_type",
+    "product category": "category",
+    "product_category": "category",
 
-    # Category
-    "category": "existing_category",
-    "existing_category": "existing_category",
+    "product sub category": "subcategory",
+    "product sub category ": "subcategory",
+    "product_sub_category": "subcategory",
 
-    # Subcategory
-    "subcategory": "existing_subcategory",
-    "existing_subcategory": "existing_subcategory",
+    "product description": "description",
+    "product description ": "description",
+    "product_description": "description",
 
-    # Images
-    "image": "image_url",
-    "image_url": "image_url",
-    "image_urls": "image_url",
+    "product color": "product_color",
+    "product_color": "product_color",
+
+    "color collection": "color_collection",
+    "color_collection": "color_collection",
+
+    "collection name": "collection_name",
+    "collection_name": "collection_name",
+
+    "materials": "materials",
+    "material": "materials",
+
+    "product dimensions": "dimensions",
+    "product dimensions ": "dimensions",
+    "product_dimensions": "dimensions",
+
+    "product url": "product_url",
+    "product_url": "product_url",
 }
 
 
 # ============================================================
-# REQUIRED COLUMNS
-# ============================================================
-
-REQUIRED_COLUMNS = [
-    "title",
-]
-
-
-# ============================================================
-# COLUMN NORMALIZATION
+# HELPERS
 # ============================================================
 
 def normalize_column_name(column):
     """
-    Convert an Excel/CSV column name into a standard format.
+    Normalize an Excel/CSV column name.
 
-    Examples:
-        "Product Title" -> "product_title"
-        "Product-Type"  -> "product_type"
-        " SKU "         -> "sku"
+    Example:
+
+        "Product Name"       -> "product name"
+        "Product Description " -> "product description"
     """
 
-    return (
-        str(column)
-        .strip()
-        .lower()
-        .replace(" ", "_")
-        .replace("-", "_")
-    )
+    if column is None:
+        return ""
+
+    return str(column).strip().lower()
 
 
-def normalize_columns(df):
+def normalize_dataframe_columns(dataframe):
     """
-    Normalize dataframe column names and map supported
-    external column names to our internal field names.
+    Convert external spreadsheet column names into the
+    internal names used by the import pipeline.
     """
-
-    df.columns = [
-        normalize_column_name(column)
-        for column in df.columns
-    ]
 
     rename_map = {}
 
-    for column in df.columns:
+    for column in dataframe.columns:
+        normalized = normalize_column_name(column)
 
-        if column in COLUMN_MAPPING:
-            rename_map[column] = COLUMN_MAPPING[column]
+        if normalized in COLUMN_ALIASES:
+            rename_map[column] = COLUMN_ALIASES[normalized]
 
-    df = df.rename(columns=rename_map)
+    dataframe = dataframe.rename(columns=rename_map)
 
-    return df
+    return dataframe
 
-
-# ============================================================
-# COLUMN VALIDATION
-# ============================================================
-
-def validate_columns(df):
-    """
-    Validate that all required columns exist.
-    """
-
-    missing_columns = [
-        column
-        for column in REQUIRED_COLUMNS
-        if column not in df.columns
-    ]
-
-    if missing_columns:
-
-        raise ValueError(
-            f"Missing required columns: {missing_columns}"
-        )
-
-    return True
-
-
-# ============================================================
-# VALUE CLEANING
-# ============================================================
 
 def clean_value(value):
     """
-    Normalize individual cell values.
-
-    Empty strings, NaN and None are converted to None.
+    Convert pandas values into JSON/database-friendly values.
     """
 
-    if value is None:
+    if pd.isna(value):
         return None
 
-    try:
-
-        if pd.isna(value):
-            return None
-
-    except (TypeError, ValueError):
-        pass
-
-    value = str(value).strip()
-
-    if value == "":
-        return None
+    if isinstance(value, pd.Timestamp):
+        return value.isoformat()
 
     return value
 
 
-# ============================================================
-# ROW NORMALIZATION
-# ============================================================
-
-def normalize_row(row):
+def dataframe_to_records(dataframe):
     """
-    Convert a pandas row into our internal product structure.
+    Convert dataframe rows to dictionaries.
     """
 
-    return {
-        "external_product_id": clean_value(
-            row.get("external_product_id")
-        ),
+    records = []
 
-        "sku": clean_value(
-            row.get("sku")
-        ),
+    for _, row in dataframe.iterrows():
+        record = {}
 
-        "title": clean_value(
-            row.get("title")
-        ),
+        for column, value in row.items():
+            record[column] = clean_value(value)
 
-        "description": clean_value(
-            row.get("description")
-        ),
+        records.append(record)
 
-        "brand": clean_value(
-            row.get("brand")
-        ),
-
-        "product_type": clean_value(
-            row.get("product_type")
-        ),
-
-        "existing_category": clean_value(
-            row.get("existing_category")
-        ),
-
-        "existing_subcategory": clean_value(
-            row.get("existing_subcategory")
-        ),
-
-        "image_url": clean_value(
-            row.get("image_url")
-        ),
-    }
+    return records
 
 
 # ============================================================
-# FILE READING
+# FILE READER
 # ============================================================
 
-def read_product_file(file):
+def read_import_file(uploaded_file):
     """
-    Read an XLSX or CSV file into a pandas DataFrame.
+    Read XLSX or CSV uploaded through Django REST Framework.
     """
 
-    filename = file.name.lower()
+    filename = uploaded_file.name.lower()
+
+    # --------------------------------------------------------
+    # XLSX
+    # --------------------------------------------------------
+
+    if filename.endswith(".xlsx"):
+
+        dataframe = pd.read_excel(
+            uploaded_file,
+            engine="openpyxl"
+        )
+
+        return dataframe
+
+    # --------------------------------------------------------
+    # CSV
+    # --------------------------------------------------------
 
     if filename.endswith(".csv"):
 
-        df = pd.read_csv(file)
+        dataframe = pd.read_csv(
+            uploaded_file
+        )
 
-    elif filename.endswith(".xlsx"):
+        return dataframe
 
-        df = pd.read_excel(file)
+    raise ValueError(
+        "Only CSV and XLSX files are supported."
+    )
 
-    else:
 
+# ============================================================
+# VALIDATE COLUMNS
+# ============================================================
+
+def validate_required_columns(dataframe):
+    """
+    Validate the normalized dataframe.
+
+    The internal import pipeline requires a product title.
+
+    The actual uploaded file can provide this as:
+
+        Product Name
+
+    because it has already been normalized to:
+
+        title
+    """
+
+    required_columns = [
+        "title",
+    ]
+
+    missing_columns = [
+        column
+        for column in required_columns
+        if column not in dataframe.columns
+    ]
+
+    if missing_columns:
         raise ValueError(
-            "Only CSV and XLSX files are supported."
+            f"Missing required columns: {missing_columns}"
         )
 
-    return df
-
 
 # ============================================================
-# DUPLICATE DETECTION
+# PROCESS IMPORT
 # ============================================================
 
-def product_exists(product_data):
+def process_import(import_job, uploaded_file):
     """
-    Check whether the product already exists.
+    Main import processor.
 
-    Duplicate detection priority:
+    Responsibilities:
 
-    1. external_product_id
-    2. SKU
-    3. title + brand
-
-    The fallback title + brand check is only used when
-    external_product_id and SKU are unavailable.
+    1. Read CSV/XLSX
+    2. Normalize column names
+    3. Validate required fields
+    4. Count rows
+    5. Track row-level errors
+    6. Update ImportJob status
     """
-
-    from products.models import Product
-
-    external_product_id = product_data.get(
-        "external_product_id"
-    )
-
-    sku = product_data.get("sku")
-
-    title = product_data.get("title")
-
-    brand = product_data.get("brand")
-
-    # --------------------------------------------------------
-    # Check external product ID
-    # --------------------------------------------------------
-
-    if external_product_id:
-
-        return Product.objects.filter(
-            external_product_id=external_product_id
-        ).exists()
-
-    # --------------------------------------------------------
-    # Check SKU
-    # --------------------------------------------------------
-
-    if sku:
-
-        return Product.objects.filter(
-            sku=sku
-        ).exists()
-
-    # --------------------------------------------------------
-    # Fallback: title + brand
-    # --------------------------------------------------------
-
-    if title:
-
-        queryset = Product.objects.filter(
-            title=title
-        )
-
-        if brand:
-
-            queryset = queryset.filter(
-                brand=brand
-            )
-
-        return queryset.exists()
-
-    return False
-
-
-# ============================================================
-# IMAGE URL PARSING
-# ============================================================
-
-def extract_image_urls(image_value):
-    """
-    Convert an image field into a list of image URLs.
-
-    Multiple URLs can be separated using:
-
-        comma
-        semicolon
-        newline
-    """
-
-    if not image_value:
-        return []
-
-    value = str(image_value).strip()
-
-    if not value:
-        return []
-
-    # Normalize separators
-    value = value.replace(";", ",")
-    value = value.replace("\n", ",")
-
-    urls = []
-
-    for url in value.split(","):
-
-        url = url.strip()
-
-        if url:
-            urls.append(url)
-
-    return urls
-
-
-# ============================================================
-# CREATE PRODUCT
-# ============================================================
-
-def create_product(product_data, import_job):
-    """
-    Create a Product using the completed Products module
-    structure.
-
-    Images are intentionally NOT stored directly on Product.
-    They are stored through ProductImage.
-    """
-
-    from products.models import Product, ProductImage
-
-    # --------------------------------------------------------
-    # Validate title
-    # --------------------------------------------------------
-
-    if not product_data["title"]:
-
-        raise ValueError(
-            "Product title is required."
-        )
-
-    # --------------------------------------------------------
-    # Check duplicate
-    # --------------------------------------------------------
-
-    if product_exists(product_data):
-
-        raise ValueError(
-            "Duplicate product detected."
-        )
-
-    # --------------------------------------------------------
-    # Create Product
-    # --------------------------------------------------------
-
-    product = Product.objects.create(
-        import_job=import_job,
-
-        external_product_id=product_data[
-            "external_product_id"
-        ],
-
-        sku=product_data["sku"],
-
-        title=product_data["title"],
-
-        description=product_data["description"],
-
-        brand=product_data["brand"],
-
-        product_type=product_data["product_type"],
-
-        existing_category=product_data[
-            "existing_category"
-        ],
-
-        existing_subcategory=product_data[
-            "existing_subcategory"
-        ],
-    )
-
-    # --------------------------------------------------------
-    # Create ProductImage records
-    # --------------------------------------------------------
-
-    image_urls = extract_image_urls(
-        product_data["image_url"]
-    )
-
-    for index, image_url in enumerate(image_urls):
-
-        ProductImage.objects.create(
-            product=product,
-            image_url=image_url,
-            sort_order=index,
-        )
-
-    return product
-
-
-# ============================================================
-# ROW ERROR RECORDING
-# ============================================================
-
-def record_row_error(
-    import_job,
-    row_number,
-    error,
-    row
-):
-    """
-    Store a row-level import failure.
-    """
-
-    ImportRowError.objects.create(
-        import_job=import_job,
-
-        row_number=row_number,
-
-        error_message=str(error),
-
-        raw_data={
-            key: str(value)
-            for key, value in row.items()
-        },
-    )
-
-
-# ============================================================
-# MAIN IMPORT PROCESS
-# ============================================================
-
-def process_import(import_job, file):
-    """
-    Main product import process.
-
-    Workflow:
-
-        1. Set import status to RUNNING
-        2. Read XLSX/CSV
-        3. Normalize columns
-        4. Validate columns
-        5. Process every row independently
-        6. Create Product
-        7. Create ProductImage records
-        8. Record row-level failures
-        9. Update progress
-        10. Mark import COMPLETED
-    """
-
-    # --------------------------------------------------------
-    # Set import status
-    # --------------------------------------------------------
-
-    import_job.status = "RUNNING"
-
-    import_job.save(
-        update_fields=["status"]
-    )
 
     try:
 
-        # ====================================================
-        # READ FILE
-        # ====================================================
+        # ----------------------------------------------------
+        # Mark job as running
+        # ----------------------------------------------------
 
-        df = read_product_file(file)
-
-        # ====================================================
-        # NORMALIZE COLUMNS
-        # ====================================================
-
-        df = normalize_columns(df)
-
-        # ====================================================
-        # VALIDATE COLUMNS
-        # ====================================================
-
-        validate_columns(df)
-
-        # ====================================================
-        # STORE TOTAL ROW COUNT
-        # ====================================================
-
-        import_job.total_rows = len(df)
-
+        import_job.status = "RUNNING"
         import_job.save(
-            update_fields=["total_rows"]
+            update_fields=["status"]
         )
 
-        # ====================================================
-        # PROCESS EACH ROW
-        # ====================================================
+        # ----------------------------------------------------
+        # Read file
+        # ----------------------------------------------------
 
-        for index, row in df.iterrows():
+        dataframe = read_import_file(
+            uploaded_file
+        )
 
-            # Excel/CSV header is row 1,
-            # therefore first data row is row 2.
-            row_number = index + 2
+        # ----------------------------------------------------
+        # Remove completely empty rows
+        # ----------------------------------------------------
+
+        dataframe = dataframe.dropna(
+            how="all"
+        )
+
+        # ----------------------------------------------------
+        # Normalize column names
+        # ----------------------------------------------------
+
+        dataframe = normalize_dataframe_columns(
+            dataframe
+        )
+
+        # ----------------------------------------------------
+        # Validate required columns
+        # ----------------------------------------------------
+
+        validate_required_columns(
+            dataframe
+        )
+
+        # ----------------------------------------------------
+        # Total rows
+        # ----------------------------------------------------
+
+        total_rows = len(dataframe)
+
+        import_job.total_rows = total_rows
+        import_job.processed_rows = 0
+        import_job.failed_rows = 0
+
+        import_job.save(
+            update_fields=[
+                "total_rows",
+                "processed_rows",
+                "failed_rows",
+            ]
+        )
+
+        # ----------------------------------------------------
+        # Process individual rows
+        # ----------------------------------------------------
+
+        processed_rows = 0
+        failed_rows = 0
+
+        records = dataframe_to_records(
+            dataframe
+        )
+
+        for index, record in enumerate(
+            records,
+            start=2
+        ):
+            """
+            Excel row numbers start at 2 because
+            row 1 contains the header.
+            """
 
             try:
 
-                # --------------------------------------------
-                # Normalize row
-                # --------------------------------------------
-
-                product_data = normalize_row(row)
+                title = record.get("title")
 
                 # --------------------------------------------
-                # Create product and images
+                # Validate title
                 # --------------------------------------------
 
-                create_product(
-                    product_data=product_data,
+                if (
+                    title is None
+                    or str(title).strip() == ""
+                ):
+                    raise ValueError(
+                        "Product title is empty."
+                    )
+
+                # --------------------------------------------
+                # At this point the row is valid.
+                #
+                # The normalized record is ready for the
+                # downstream processing module.
+                # --------------------------------------------
+
+                processed_rows += 1
+
+            except Exception as row_error:
+
+                failed_rows += 1
+
+                ImportRowError.objects.create(
                     import_job=import_job,
+                    row_number=index,
+                    error_message=str(row_error),
+                    raw_data=record,
                 )
 
-                # --------------------------------------------
-                # Successful row
-                # --------------------------------------------
+        # ----------------------------------------------------
+        # Update counters
+        # ----------------------------------------------------
 
-                import_job.processed_rows += 1
+        import_job.processed_rows = processed_rows
+        import_job.failed_rows = failed_rows
 
-            except Exception as error:
+        # ----------------------------------------------------
+        # Final status
+        # ----------------------------------------------------
 
-                # --------------------------------------------
-                # Failed row
-                # --------------------------------------------
+        if failed_rows == 0:
+            import_job.status = "COMPLETED"
+        else:
+            import_job.status = "COMPLETED"
 
-                import_job.failed_rows += 1
+        import_job.completed_at = datetime.now()
 
-                record_row_error(
-                    import_job=import_job,
-                    row_number=row_number,
-                    error=error,
-                    row=row,
-                )
+        import_job.save(
+            update_fields=[
+                "processed_rows",
+                "failed_rows",
+                "status",
+                "completed_at",
+            ]
+        )
 
-            # ----------------------------------------------
-            # Persist progress after every row
-            # ----------------------------------------------
+        return import_job
 
-            import_job.save(
-                update_fields=[
-                    "processed_rows",
-                    "failed_rows",
-                ]
-            )
+    except Exception:
 
-        # ====================================================
-        # IMPORT COMPLETED
-        # ====================================================
+        # ----------------------------------------------------
+        # Mark import as failed
+        # ----------------------------------------------------
 
-        import_job.status = "COMPLETED"
+        import_job.status = "FAILED"
 
-        import_job.completed_at = timezone.now()
+        import_job.completed_at = datetime.now()
 
         import_job.save(
             update_fields=[
@@ -590,16 +397,9 @@ def process_import(import_job, file):
             ]
         )
 
-    except Exception as error:
+        # ----------------------------------------------------
+        # Re-raise the original error so views.py can return
+        # it to the frontend.
+        # ----------------------------------------------------
 
-        # ====================================================
-        # IMPORT-LEVEL FAILURE
-        # ====================================================
-
-        import_job.status = "FAILED"
-
-        import_job.save(
-            update_fields=["status"]
-        )
-
-        raise error
+        raise
