@@ -1,5 +1,8 @@
 from rest_framework import status
-from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.parsers import (
+    MultiPartParser,
+    FormParser,
+)
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -17,23 +20,9 @@ class ImportUploadView(APIView):
 
     def post(self, request):
 
-        print("================================")
-        print("REQUEST CONTENT TYPE:")
-        print(request.content_type)
-
-        print("REQUEST FILES:")
-        print(request.FILES)
-
-        print("REQUEST DATA:")
-        print(request.data)
-
-        print("================================")
-
-        # ----------------------------------------------------
-        # Get uploaded file
-        # ----------------------------------------------------
-
-        uploaded_file = request.FILES.get("file")
+        uploaded_file = request.FILES.get(
+            "file"
+        )
 
         if not uploaded_file:
 
@@ -49,11 +38,11 @@ class ImportUploadView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # ----------------------------------------------------
-        # Validate extension
-        # ----------------------------------------------------
-
-        filename = uploaded_file.name.lower()
+        filename = (
+            uploaded_file.name
+            .lower()
+            .strip()
+        )
 
         if not (
             filename.endswith(".xlsx")
@@ -65,14 +54,11 @@ class ImportUploadView(APIView):
                     "error": (
                         "Only CSV and XLSX files "
                         "are supported."
-                    )
+                    ),
+                    "filename": uploaded_file.name,
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
-
-        # ----------------------------------------------------
-        # Create import job
-        # ----------------------------------------------------
 
         import_job = ImportJob.objects.create(
             file_name=uploaded_file.name,
@@ -81,16 +67,21 @@ class ImportUploadView(APIView):
 
         try:
 
-            # ------------------------------------------------
-            # Process uploaded file
-            # ------------------------------------------------
-
             process_import(
                 import_job,
                 uploaded_file,
             )
 
+            # Refresh in case process_import
+            # changed the database record.
+            import_job.refresh_from_db()
+
         except ValueError as error:
+
+            import_job.status = "FAILED"
+            import_job.save(
+                update_fields=["status"]
+            )
 
             return Response(
                 {
@@ -103,6 +94,11 @@ class ImportUploadView(APIView):
 
         except Exception as error:
 
+            import_job.status = "FAILED"
+            import_job.save(
+                update_fields=["status"]
+            )
+
             return Response(
                 {
                     "import_id": import_job.id,
@@ -111,10 +107,6 @@ class ImportUploadView(APIView):
                 },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
-
-        # ----------------------------------------------------
-        # Success
-        # ----------------------------------------------------
 
         return Response(
             ImportJobSerializer(
@@ -138,7 +130,8 @@ class ImportDetailView(APIView):
 
             return Response(
                 {
-                    "error": "Import job not found."
+                    "error": "Import job not found.",
+                    "import_id": pk,
                 },
                 status=status.HTTP_404_NOT_FOUND,
             )
@@ -146,5 +139,6 @@ class ImportDetailView(APIView):
         return Response(
             ImportJobSerializer(
                 import_job
-            ).data
+            ).data,
+            status=status.HTTP_200_OK,
         )
