@@ -7,6 +7,7 @@ import ImportsPage from "./features/imports/ImportsPage";
 import TaxonomyPage from "./features/taxonomy/TaxonomyPage";
 import ClassificationPage from "./features/classification/ClassificationPage";
 import ResultsPage from "./pages/ResultPage";
+import ReviewPage from "./pages/ReviewPage";
 
 function PlaceholderPage({ title }) {
   return (
@@ -61,7 +62,7 @@ export default function App() {
 
           <Route
             path="/review"
-            element={<PlaceholderPage title="Review Queue" />}
+            element={<ReviewPage />}
           />
 
           <Route
