@@ -3,6 +3,7 @@ import Dashboard from "../features/dashboard/Dashboard";
 import ImportsPage from "../features/imports/ImportsPage";
 import TaxonomyPage from "../features/taxonomy/TaxonomyPage";
 import ClassificationPage from "../features/classification/ClassificationPage";
+import ResultsPage from "../pages/ResultPage";
 
 function PlaceholderPage({ title }) {
   return (
@@ -50,7 +51,7 @@ export default function AppRoutes() {
 
       <Route
         path="/results"
-        element={<PlaceholderPage title="Results Workspace" />}
+        element={<ResultsPage/>}
       />
 
       <Route

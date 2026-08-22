@@ -24,7 +24,7 @@ const navigation = [
   {
     label: "Review Queue",
     path: "/review"
-  }
+  },
 ];
 
 export default function Sidebar({ mobileOpen, onClose }) {

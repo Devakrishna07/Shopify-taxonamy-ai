@@ -7,12 +7,14 @@ export const API_ENDPOINTS = {
   },
 
   results: {
-    list: "/results/",
-    detail: (id) => `/results/${id}/`,
-    approve: (id) => `/results/${id}/approve/`,
-    reject: (id) => `/results/${id}/reject/`,
-    reclassify: (id) => `/results/${id}/reclassify/`,
-  },
+  list: "/api/results/",
+  detail: (id) => `/api/results/${id}/`,
+  product: (productId) =>
+    `/api/results/product/${productId}/`,
+  summary: "/api/results/summary/",
+  approve: (id) =>
+    `/api/results/${id}/approve/`,
+},
 
   imports: {
     list: "/imports/",
@@ -59,3 +61,4 @@ export const CLASSIFICATION_ENDPOINTS = {
   classifyImport: (importId) =>
     `/classification/imports/${importId}/classify/`,
 };
+
