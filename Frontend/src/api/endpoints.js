@@ -48,3 +48,14 @@ export const API_ENDPOINTS = {
 };
 
 export default API_ENDPOINTS;
+
+export const CLASSIFICATION_ENDPOINTS = {
+  classifyProduct: (productId) =>
+    `/classification/products/${productId}/classify/`,
+
+  getClassification: (productId) =>
+    `/classification/classifications/${productId}/`,
+
+  classifyImport: (importId) =>
+    `/classification/imports/${importId}/classify/`,
+};

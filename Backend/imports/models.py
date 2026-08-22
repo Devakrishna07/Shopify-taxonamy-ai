@@ -10,7 +10,15 @@ class ImportJob(models.Model):
         ("FAILED", "Failed"),
     ]
 
+    # Original uploaded filename
     file_name = models.CharField(max_length=255)
+
+    # Actual uploaded file
+    file = models.FileField(
+        upload_to="imports/",
+        null=True,
+        blank=True
+    )
 
     status = models.CharField(
         max_length=30,
@@ -34,7 +42,7 @@ class ImportJob(models.Model):
     def __str__(self):
         return f"{self.file_name} - {self.status}"
 
-    # row level failure tracking
+
 class ImportRowError(models.Model):
 
     import_job = models.ForeignKey(

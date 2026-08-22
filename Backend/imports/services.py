@@ -1,27 +1,17 @@
 import csv
 import io
-from datetime import datetime
 
 import pandas as pd
 
+from django.db import transaction
+from django.utils import timezone
+
 from .models import ImportJob, ImportRowError
+from products.models import Product
 
 
 # ============================================================
 # COLUMN ALIASES
-# ============================================================
-#
-# The frontend/import module uses a standard internal field
-# called "title".
-#
-# Your actual Excel file uses:
-#
-#     Product Name
-#
-# Therefore we normalize Product Name -> title.
-#
-# Additional aliases are included so future CSV/XLSX files
-# can use common variations.
 # ============================================================
 
 COLUMN_ALIASES = {
@@ -78,9 +68,8 @@ def normalize_column_name(column):
     Normalize an Excel/CSV column name.
 
     Example:
-
-        "Product Name"       -> "product name"
-        "Product Description " -> "product description"
+        Product Name -> product name
+        Product Description  -> product description
     """
 
     if column is None:
@@ -91,26 +80,29 @@ def normalize_column_name(column):
 
 def normalize_dataframe_columns(dataframe):
     """
-    Convert external spreadsheet column names into the
+    Convert external spreadsheet column names into
     internal names used by the import pipeline.
     """
 
     rename_map = {}
 
     for column in dataframe.columns:
+
         normalized = normalize_column_name(column)
 
         if normalized in COLUMN_ALIASES:
             rename_map[column] = COLUMN_ALIASES[normalized]
 
-    dataframe = dataframe.rename(columns=rename_map)
+    dataframe = dataframe.rename(
+        columns=rename_map
+    )
 
     return dataframe
 
 
 def clean_value(value):
     """
-    Convert pandas values into JSON/database-friendly values.
+    Convert pandas values into database-friendly values.
     """
 
     if pd.isna(value):
@@ -130,6 +122,7 @@ def dataframe_to_records(dataframe):
     records = []
 
     for _, row in dataframe.iterrows():
+
         record = {}
 
         for column, value in row.items():
@@ -138,6 +131,24 @@ def dataframe_to_records(dataframe):
         records.append(record)
 
     return records
+
+
+def string_value(value):
+    """
+    Safely convert a value into a trimmed string.
+
+    Returns None for empty values.
+    """
+
+    if value is None:
+        return None
+
+    value = str(value).strip()
+
+    if value == "":
+        return None
+
+    return value
 
 
 # ============================================================
@@ -189,15 +200,7 @@ def validate_required_columns(dataframe):
     """
     Validate the normalized dataframe.
 
-    The internal import pipeline requires a product title.
-
-    The actual uploaded file can provide this as:
-
-        Product Name
-
-    because it has already been normalized to:
-
-        title
+    The import pipeline requires a product title.
     """
 
     required_columns = [
@@ -211,9 +214,110 @@ def validate_required_columns(dataframe):
     ]
 
     if missing_columns:
+
         raise ValueError(
             f"Missing required columns: {missing_columns}"
         )
+
+
+# ============================================================
+# CREATE PRODUCT
+# ============================================================
+
+def create_product_from_record(record):
+    """
+    Create a Product database record from one
+    normalized import record.
+
+    The Product model currently supports:
+
+        external_product_id
+        sku
+        title
+        description
+        brand
+        product_type
+        existing_category
+        existing_subcategory
+        normalized_text
+        status
+    """
+
+    title = string_value(
+        record.get("title")
+    )
+
+    if not title:
+        raise ValueError(
+            "Product title is empty."
+        )
+
+    product_number = string_value(
+        record.get("product_number")
+    )
+
+    model_number = string_value(
+        record.get("model_number")
+    )
+
+    description = string_value(
+        record.get("description")
+    )
+
+    category = string_value(
+        record.get("category")
+    )
+
+    subcategory = string_value(
+        record.get("subcategory")
+    )
+
+    # --------------------------------------------------------
+    # Determine SKU
+    # --------------------------------------------------------
+    #
+    # Prefer Product Number.
+    # If Product Number is unavailable,
+    # use Model Number.
+    #
+
+    sku = product_number or model_number
+
+    # --------------------------------------------------------
+    # Build normalized text
+    # --------------------------------------------------------
+
+    normalized_parts = [
+        title,
+        description,
+        category,
+        subcategory,
+    ]
+
+    normalized_text = " ".join(
+        value
+        for value in normalized_parts
+        if value
+    )
+
+    # --------------------------------------------------------
+    # Create Product
+    # --------------------------------------------------------
+
+    product = Product.objects.create(
+        external_product_id=product_number,
+        sku=sku,
+        title=title,
+        description=description,
+        brand=None,
+        product_type=category,
+        existing_category=category,
+        existing_subcategory=subcategory,
+        normalized_text=normalized_text or None,
+        status="PENDING",
+    )
+
+    return product
 
 
 # ============================================================
@@ -229,9 +333,10 @@ def process_import(import_job, uploaded_file):
     1. Read CSV/XLSX
     2. Normalize column names
     3. Validate required fields
-    4. Count rows
-    5. Track row-level errors
-    6. Update ImportJob status
+    4. Create Product records
+    5. Count rows
+    6. Track row-level errors
+    7. Update ImportJob status
     """
 
     try:
@@ -241,6 +346,7 @@ def process_import(import_job, uploaded_file):
         # ----------------------------------------------------
 
         import_job.status = "RUNNING"
+
         import_job.save(
             update_fields=["status"]
         )
@@ -310,33 +416,35 @@ def process_import(import_job, uploaded_file):
             records,
             start=2
         ):
-            """
-            Excel row numbers start at 2 because
-            row 1 contains the header.
-            """
 
             try:
 
-                title = record.get("title")
-
-                # --------------------------------------------
+                # ------------------------------------------------
                 # Validate title
-                # --------------------------------------------
+                # ------------------------------------------------
+
+                title = record.get("title")
 
                 if (
                     title is None
                     or str(title).strip() == ""
                 ):
+
                     raise ValueError(
                         "Product title is empty."
                     )
 
-                # --------------------------------------------
-                # At this point the row is valid.
-                #
-                # The normalized record is ready for the
-                # downstream processing module.
-                # --------------------------------------------
+                # ------------------------------------------------
+                # Create Product
+                # ------------------------------------------------
+
+                create_product_from_record(
+                    record
+                )
+
+                # ------------------------------------------------
+                # Product successfully created
+                # ------------------------------------------------
 
                 processed_rows += 1
 
@@ -363,11 +471,15 @@ def process_import(import_job, uploaded_file):
         # ----------------------------------------------------
 
         if failed_rows == 0:
-            import_job.status = "COMPLETED"
-        else:
+
             import_job.status = "COMPLETED"
 
-        import_job.completed_at = datetime.now()
+        else:
+
+            # Import itself completed, but some rows failed.
+            import_job.status = "COMPLETED"
+
+        import_job.completed_at = timezone.now()
 
         import_job.save(
             update_fields=[
@@ -388,7 +500,7 @@ def process_import(import_job, uploaded_file):
 
         import_job.status = "FAILED"
 
-        import_job.completed_at = datetime.now()
+        import_job.completed_at = timezone.now()
 
         import_job.save(
             update_fields=[
@@ -398,8 +510,7 @@ def process_import(import_job, uploaded_file):
         )
 
         # ----------------------------------------------------
-        # Re-raise the original error so views.py can return
-        # it to the frontend.
+        # Re-raise original error
         # ----------------------------------------------------
 
         raise

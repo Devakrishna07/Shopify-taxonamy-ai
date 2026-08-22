@@ -1,8 +1,10 @@
 from rest_framework import status
+
 from rest_framework.parsers import (
     MultiPartParser,
     FormParser,
 )
+
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -20,9 +22,7 @@ class ImportUploadView(APIView):
 
     def post(self, request):
 
-        uploaded_file = request.FILES.get(
-            "file"
-        )
+        uploaded_file = request.FILES.get("file")
 
         if not uploaded_file:
 
@@ -60,8 +60,10 @@ class ImportUploadView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        # Create the ImportJob and persist the uploaded file.
         import_job = ImportJob.objects.create(
             file_name=uploaded_file.name,
+            file=uploaded_file,
             status="PENDING",
         )
 
@@ -69,7 +71,7 @@ class ImportUploadView(APIView):
 
             process_import(
                 import_job,
-                uploaded_file,
+                import_job.file,
             )
 
             # Refresh in case process_import
@@ -79,6 +81,7 @@ class ImportUploadView(APIView):
         except ValueError as error:
 
             import_job.status = "FAILED"
+
             import_job.save(
                 update_fields=["status"]
             )
@@ -95,6 +98,7 @@ class ImportUploadView(APIView):
         except Exception as error:
 
             import_job.status = "FAILED"
+
             import_job.save(
                 update_fields=["status"]
             )
@@ -110,7 +114,8 @@ class ImportUploadView(APIView):
 
         return Response(
             ImportJobSerializer(
-                import_job
+                import_job,
+                context={"request": request},
             ).data,
             status=status.HTTP_201_CREATED,
         )
@@ -138,7 +143,8 @@ class ImportDetailView(APIView):
 
         return Response(
             ImportJobSerializer(
-                import_job
+                import_job,
+                context={"request": request},
             ).data,
             status=status.HTTP_200_OK,
         )

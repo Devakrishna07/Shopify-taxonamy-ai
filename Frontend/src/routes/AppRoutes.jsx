@@ -2,6 +2,7 @@ import { Routes, Route } from "react-router-dom";
 import Dashboard from "../features/dashboard/Dashboard";
 import ImportsPage from "../features/imports/ImportsPage";
 import TaxonomyPage from "../features/taxonomy/TaxonomyPage";
+import ClassificationPage from "../features/classification/ClassificationPage";
 
 function PlaceholderPage({ title }) {
   return (

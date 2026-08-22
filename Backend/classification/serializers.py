@@ -6,18 +6,15 @@ from classification.models import (
 )
 
 
-class ClassificationCandidateSerializer(
-    serializers.ModelSerializer
-):
-
+class ClassificationCandidateSerializer(serializers.ModelSerializer):
     category_name = serializers.CharField(
         source="category.name",
-        read_only=True
+        read_only=True,
     )
 
     category_full_name = serializers.CharField(
         source="category.full_name",
-        read_only=True
+        read_only=True,
     )
 
     class Meta:
@@ -34,24 +31,23 @@ class ClassificationCandidateSerializer(
         ]
 
 
-class ClassificationResultSerializer(
-    serializers.ModelSerializer
-):
-
+class ClassificationResultSerializer(serializers.ModelSerializer):
     category_name = serializers.CharField(
         source="category.name",
-        read_only=True
+        read_only=True,
+        allow_null=True,
     )
 
     category_full_name = serializers.CharField(
         source="category.full_name",
-        read_only=True
+        read_only=True,
+        allow_null=True,
     )
 
     candidates = ClassificationCandidateSerializer(
         source="product.classification_candidates",
         many=True,
-        read_only=True
+        read_only=True,
     )
 
     class Meta:

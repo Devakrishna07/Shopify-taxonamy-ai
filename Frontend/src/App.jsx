@@ -4,6 +4,8 @@ import { Routes, Route } from "react-router-dom";
 import AppShell from "./components/layout/AppShell";
 import Dashboard from "./features/dashboard/Dashboard";
 import ImportsPage from "./features/imports/ImportsPage";
+import TaxonomyPage from "./features/taxonomy/TaxonomyPage";
+import ClassificationPage from "./features/classification/ClassificationPage";
 
 function PlaceholderPage({ title }) {
   return (
@@ -33,7 +35,7 @@ export default function App() {
 
           <Route
             path="/taxonomy"
-            element={<PlaceholderPage title="Taxonomy Explorer" />}
+            element={<TaxonomyPage/>}
           />
 
           <Route
@@ -63,7 +65,7 @@ export default function App() {
 
           <Route
             path="/products/:id/classification"
-            element={<PlaceholderPage title="Classification View" />}
+            element={<ClassificationPage/>}
           />
 
           <Route

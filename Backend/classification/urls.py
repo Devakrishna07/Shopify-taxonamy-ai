@@ -3,12 +3,11 @@ from django.urls import path
 from classification.views import (
     ProductClassificationView,
     ClassificationResultView,
-    ImportClassificationView
+    ImportClassificationView,
 )
 
 
 urlpatterns = [
-
     path(
         "products/<int:product_id>/classify/",
         ProductClassificationView.as_view(),
@@ -22,8 +21,8 @@ urlpatterns = [
     ),
 
     path(
-    "imports/<int:import_id>/classify/",
-    ImportClassificationView.as_view(),
-    name="classify-import",
-),
+        "imports/<int:import_id>/classify/",
+        ImportClassificationView.as_view(),
+        name="classify-import",
+    ),
 ]
