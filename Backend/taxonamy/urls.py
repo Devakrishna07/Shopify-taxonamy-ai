@@ -1,3 +1,4 @@
+
 from django.urls import path
 
 from .views import (
@@ -6,27 +7,26 @@ from .views import (
     TaxonomyAttributeListAPIView,
     TaxonomyValueListAPIView,
     CategoryAttributeListAPIView,
+
+    ProductTaxonomyListAPIView,
     ProductTaxonomyAPIView,
+
     ClassifyProductAPIView,
     BulkClassifyProductsAPIView,
+
+    TaxonomyStatsAPIView,
+
+    ApproveProductTaxonomyAPIView,
+    RejectProductTaxonomyAPIView,
 )
 
 
 urlpatterns = [
-
-    # ========================================================
-    # CATEGORIES
-    # ========================================================
-
     path(
         "categories/",
         TaxonomyCategoryListAPIView.as_view(),
         name="taxonomy-categories",
     ),
-
-    # ========================================================
-    # SEARCH
-    # ========================================================
 
     path(
         "search/",
@@ -34,19 +34,11 @@ urlpatterns = [
         name="taxonomy-search",
     ),
 
-    # ========================================================
-    # ATTRIBUTES
-    # ========================================================
-
     path(
         "attributes/",
         TaxonomyAttributeListAPIView.as_view(),
         name="taxonomy-attributes",
     ),
-
-    # ========================================================
-    # VALUES
-    # ========================================================
 
     path(
         "values/",
@@ -54,19 +46,17 @@ urlpatterns = [
         name="taxonomy-values",
     ),
 
-    # ========================================================
-    # CATEGORY ATTRIBUTES
-    # ========================================================
-
     path(
         "categories/<int:category_id>/attributes/",
         CategoryAttributeListAPIView.as_view(),
         name="category-attributes",
     ),
 
-    # ========================================================
-    # PRODUCT TAXONOMY
-    # ========================================================
+    path(
+        "products/",
+        ProductTaxonomyListAPIView.as_view(),
+        name="product-taxonomy-list",
+    ),
 
     path(
         "products/<int:product_id>/",
@@ -74,23 +64,33 @@ urlpatterns = [
         name="product-taxonomy",
     ),
 
-    # ========================================================
-    # SINGLE PRODUCT CLASSIFICATION
-    # ========================================================
-
     path(
         "products/<int:product_id>/classify/",
         ClassifyProductAPIView.as_view(),
         name="classify-product",
     ),
 
-    # ========================================================
-    # BULK CLASSIFICATION
-    # ========================================================
-
     path(
         "products/classify/",
         BulkClassifyProductsAPIView.as_view(),
-        name="bulk-classify",
+        name="bulk-classify-products",
+    ),
+
+    path(
+        "stats/",
+        TaxonomyStatsAPIView.as_view(),
+        name="taxonomy-stats",
+    ),
+
+    path(
+        "products/<int:product_id>/approve/",
+        ApproveProductTaxonomyAPIView.as_view(),
+        name="approve-product-taxonomy",
+    ),
+
+    path(
+        "products/<int:product_id>/reject/",
+        RejectProductTaxonomyAPIView.as_view(),
+        name="reject-product-taxonomy",
     ),
 ]

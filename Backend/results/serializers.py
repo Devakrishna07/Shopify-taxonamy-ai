@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 from products.models import Product
+from products.serializers import ProductImageSerializer
 from classification.models import ClassificationResult
 
 from .models import DecisionReview
@@ -9,6 +10,10 @@ from .models import DecisionReview
 class ResultProductSerializer(
     serializers.ModelSerializer
 ):
+    images = ProductImageSerializer(
+        many=True,
+        read_only=True
+    )
 
     class Meta:
         model = Product
@@ -24,6 +29,7 @@ class ResultProductSerializer(
             "existing_category",
             "existing_subcategory",
             "status",
+            "images",
         ]
 
 

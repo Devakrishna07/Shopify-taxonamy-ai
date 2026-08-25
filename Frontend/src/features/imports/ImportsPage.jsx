@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 import ImportDropzone from "./ImportDropzone";
 import ImportResult from "./ImportResult";
@@ -7,6 +7,7 @@ import ValidationSummary from "./ValidationSummary";
 import {
   uploadProducts,
   getImport,
+  getImports,
 } from "../../api/imports.api";
 
 import {
@@ -206,6 +207,25 @@ export default function ImportsPage() {
       "Unable to import the products."
     );
   }
+
+  // --------------------------------------------------
+  // LOAD RECENT IMPORT ON MOUNT
+  // --------------------------------------------------
+
+  useEffect(() => {
+    async function loadRecentImport() {
+      try {
+        const response = await getImports();
+        const data = response?.data ?? response;
+        if (data && data.length > 0) {
+          setImportResult(normalizeImportResponse(data[0]));
+        }
+      } catch (err) {
+        console.error("[ImportsPage] Failed to load recent import:", err);
+      }
+    }
+    loadRecentImport();
+  }, []);
 
   // --------------------------------------------------
   // PAGE

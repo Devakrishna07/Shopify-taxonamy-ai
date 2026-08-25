@@ -89,8 +89,8 @@ export default function ReviewDetail({
             <strong>
               {review.created_at
                 ? new Date(
-                    review.created_at
-                  ).toLocaleString()
+                  review.created_at
+                ).toLocaleString()
                 : "—"}
             </strong>
           </div>
@@ -103,6 +103,23 @@ export default function ReviewDetail({
             {review.comment || "No comment added."}
           </p>
         </div>
+
+        {review.product_info?.images?.length > 0 && (
+          <div className="review-comment" style={{ marginTop: "1rem" }}>
+            <h3>Product Images</h3>
+            <div style={{ display: "flex", gap: "1rem", overflowX: "auto", marginTop: "0.5rem" }}>
+              {review.product_info.images.map((img, i) => (
+                <img
+                  key={i}
+                  src={img.url}
+                  alt={review.product_info.title || "Product"}
+                  style={{ height: "120px", width: "120px", objectFit: "contain", borderRadius: "8px", border: "1px solid #ccc", backgroundColor: "#f9fafb" }}
+                  onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                />
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="review-action-buttons">
           <button

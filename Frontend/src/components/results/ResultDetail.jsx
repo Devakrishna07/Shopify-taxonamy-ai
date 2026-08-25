@@ -76,6 +76,23 @@ export default function ResultDetail({
                 value={product?.existing_subcategory}
               />
             </div>
+
+            {product?.images && product.images.length > 0 && (
+              <div className="mt-4">
+                <p className="text-xs text-gray-500 mb-2">Images</p>
+                <div className="flex gap-4 overflow-x-auto py-2">
+                  {product.images.map((img) => (
+                    <img 
+                      key={img.id} 
+                      src={img.url} 
+                      alt={product.title || "Product"} 
+                      className="h-32 w-32 object-contain rounded-md border border-gray-200 bg-gray-50"
+                      onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
           </section>
 
           <section>

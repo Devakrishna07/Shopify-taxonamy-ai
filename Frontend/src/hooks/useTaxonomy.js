@@ -4,248 +4,106 @@ import {
 } from "react";
 
 import {
-  getTaxonomyCategories,
-  searchTaxonomy,
   getProductTaxonomy,
+  getProductTaxonomyResults,
+  getTaxonomyStats,
+
   classifyProduct,
   bulkClassifyProducts,
+
+  approveProductTaxonomy,
+  rejectProductTaxonomy,
 } from "../api/taxonomy.api";
 
 
 export function useTaxonomy() {
+  const [products, setProducts] =
+    useState([]);
 
-  // ==========================================================
-  // STATE
-  // ==========================================================
+  const [productResult, setProductResult] =
+    useState(null);
 
-  const [
-    categories,
-    setCategories,
-  ] = useState([]);
+  const [stats, setStats] =
+    useState(null);
 
-  const [
-    searchResults,
-    setSearchResults,
-  ] = useState([]);
+  const [productsLoading, setProductsLoading] =
+    useState(false);
 
-  const [
-    productResult,
-    setProductResult,
-  ] = useState(null);
+  const [loading, setLoading] =
+    useState(false);
 
-  const [
-    loading,
-    setLoading,
-  ] = useState(false);
+  const [classificationLoading, setClassificationLoading] =
+    useState(false);
 
-  const [
-    searchLoading,
-    setSearchLoading,
-  ] = useState(false);
-
-  const [
-    classificationLoading,
-    setClassificationLoading,
-  ] = useState(false);
-
-  const [
-    error,
-    setError,
-  ] = useState(null);
+  const [error, setError] =
+    useState(null);
 
 
-  // ==========================================================
-  // LOAD CATEGORIES
-  // ==========================================================
-
-  const loadCategories =
+  const loadProductTaxonomyList =
     useCallback(
-      async (filters = {}) => {
-
-        setLoading(true);
+      async (params = {}) => {
+        setProductsLoading(true);
         setError(null);
 
         try {
-
-          console.log(
-            "[TAXONOMY] Loading categories",
-            filters
-          );
-
-          const data =
-            await getTaxonomyCategories(
-              filters
+          const response =
+            await getProductTaxonomyResults(
+              params
             );
 
-          /*
-           * Django ListAPIView normally
-           * returns:
-           *
-           * [
-           *   {...},
-           *   {...}
-           * ]
-           *
-           * But pagination can return:
-           *
-           * {
-           *   count: 100,
-           *   results: [...]
-           * }
-           */
+          const data =
+            response?.data || response;
 
-          const results =
-            Array.isArray(data)
-              ? data
-              : Array.isArray(
-                  data?.results
-                )
-              ? data.results
-              : [];
-
-          setCategories(
-            results
+          setProducts(
+            data?.results || []
           );
 
-          console.log(
-            "[TAXONOMY] Categories loaded:",
-            results.length
-          );
-
-          return results;
+          return data;
 
         } catch (err) {
-
-          console.error(
-            "[TAXONOMY] Failed to load categories:",
+          setError(
+            err?.response?.data ||
             err
           );
 
-          setError(err);
-
-          return [];
+          throw err;
 
         } finally {
-
-          setLoading(false);
+          setProductsLoading(false);
         }
       },
       []
     );
 
-
-  // ==========================================================
-  // SEARCH
-  // ==========================================================
-
-  const search =
-    useCallback(
-      async (query) => {
-
-        const cleanQuery =
-          query?.trim();
-
-        if (!cleanQuery) {
-
-          setSearchResults([]);
-
-          return [];
-        }
-
-        setSearchLoading(true);
-        setError(null);
-
-        try {
-
-          console.log(
-            "[TAXONOMY] Searching:",
-            cleanQuery
-          );
-
-          const data =
-            await searchTaxonomy(
-              cleanQuery
-            );
-
-          const results =
-            Array.isArray(
-              data?.results
-            )
-              ? data.results
-              : Array.isArray(data)
-              ? data
-              : [];
-
-          setSearchResults(
-            results
-          );
-
-          console.log(
-            "[TAXONOMY] Search results:",
-            results.length
-          );
-
-          return results;
-
-        } catch (err) {
-
-          console.error(
-            "[TAXONOMY] Search failed:",
-            err
-          );
-
-          setError(err);
-
-          setSearchResults([]);
-
-          return [];
-
-        } finally {
-
-          setSearchLoading(false);
-        }
-      },
-      []
-    );
-
-
-  // ==========================================================
-  // GET PRODUCT TAXONOMY
-  // ==========================================================
 
   const loadProductTaxonomy =
     useCallback(
       async (productId) => {
-
         setLoading(true);
         setError(null);
 
         try {
-
-          const data =
+          const response =
             await getProductTaxonomy(
               productId
             );
 
-          setProductResult(
-            data
-          );
+          const data =
+            response?.data || response;
+
+          setProductResult(data);
 
           return data;
 
         } catch (err) {
-
-          console.error(
-            "[TAXONOMY] Failed to load product taxonomy:",
+          setError(
+            err?.response?.data ||
             err
           );
 
-          setError(err);
-
-          return null;
+          throw err;
 
         } finally {
-
           setLoading(false);
         }
       },
@@ -253,100 +111,58 @@ export function useTaxonomy() {
     );
 
 
-  // ==========================================================
-  // CLASSIFY PRODUCT
-  // ==========================================================
-
-  const runClassification =
+  const loadStats =
     useCallback(
-      async (productId) => {
-
-        setClassificationLoading(
-          true
-        );
-
-        setError(null);
-
+      async () => {
         try {
-
-          console.log(
-            "[TAXONOMY] Classifying product:",
-            productId
-          );
+          const response =
+            await getTaxonomyStats();
 
           const data =
-            await classifyProduct(
-              productId
-            );
+            response?.data || response;
 
-          setProductResult(
-            data
-          );
+          setStats(data);
 
           return data;
 
         } catch (err) {
-
-          console.error(
-            "[TAXONOMY] Classification failed:",
-            err
-          );
-
-          setError(err);
-
-          return null;
-
-        } finally {
-
-          setClassificationLoading(
-            false
-          );
+          throw err;
         }
       },
       []
     );
 
 
-  // ==========================================================
-  // BULK CLASSIFICATION
-  // ==========================================================
-
-  const runBulkClassification =
+  const runClassification =
     useCallback(
-      async (limit = null) => {
-
+      async (productId) => {
         setClassificationLoading(
           true
         );
-
         setError(null);
 
         try {
+          const response =
+            await classifyProduct(
+              productId
+            );
 
-          console.log(
-            "[TAXONOMY] Starting bulk classification",
-            {
-              limit,
-            }
-          );
+          const data =
+            response?.data || response;
 
-          return await bulkClassifyProducts(
-            limit
-          );
+          setProductResult(data);
+
+          return data;
 
         } catch (err) {
-
-          console.error(
-            "[TAXONOMY] Bulk classification failed:",
+          setError(
+            err?.response?.data ||
             err
           );
 
-          setError(err);
-
-          return null;
+          throw err;
 
         } finally {
-
           setClassificationLoading(
             false
           );
@@ -356,62 +172,110 @@ export function useTaxonomy() {
     );
 
 
-  // ==========================================================
-  // CLEAR SEARCH
-  // ==========================================================
+  const runBulkClassification =
+    useCallback(
+      async (
+        limit = 10
+      ) => {
+        setClassificationLoading(
+          true
+        );
+        setError(null);
 
-  const clearSearchResults =
-    useCallback(() => {
+        try {
+          const response =
+            await bulkClassifyProducts({
+              limit,
+              onlyUnclassified: true,
+            });
 
-      setSearchResults([]);
+          const data =
+            response?.data || response;
 
-    }, []);
+          return data;
+
+        } catch (err) {
+          setError(
+            err?.response?.data ||
+            err
+          );
+
+          throw err;
+
+        } finally {
+          setClassificationLoading(
+            false
+          );
+        }
+      },
+      []
+    );
 
 
-  // ==========================================================
-  // CLEAR ERROR
-  // ==========================================================
+  const approveTaxonomy =
+    useCallback(
+      async (
+        productId,
+        categoryId
+      ) => {
+        const response =
+          await approveProductTaxonomy(
+            productId,
+            categoryId
+          );
 
-  const clearError =
-    useCallback(() => {
+        const data =
+          response?.data || response;
 
-      setError(null);
+        setProductResult(data);
 
-    }, []);
+        return data;
+      },
+      []
+    );
 
 
-  // ==========================================================
-  // RETURN
-  // ==========================================================
+  const rejectTaxonomy =
+    useCallback(
+      async (
+        productId,
+        reason
+      ) => {
+        const response =
+          await rejectProductTaxonomy(
+            productId,
+            reason
+          );
+
+        const data =
+          response?.data || response;
+
+        setProductResult(data);
+
+        return data;
+      },
+      []
+    );
+
 
   return {
-
-    categories,
-
-    searchResults,
-
+    products,
     productResult,
+    stats,
 
+    productsLoading,
     loading,
-
-    searchLoading,
-
     classificationLoading,
-
     error,
 
-    loadCategories,
-
-    search,
-
+    loadProductTaxonomyList,
     loadProductTaxonomy,
+    loadStats,
 
     runClassification,
-
     runBulkClassification,
 
-    clearSearchResults,
-
-    clearError,
+    approveTaxonomy,
+    rejectTaxonomy,
   };
 }

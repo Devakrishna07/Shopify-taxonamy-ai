@@ -5,6 +5,16 @@ from .models import ReviewAction
 
 class ReviewActionSerializer(serializers.ModelSerializer):
 
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        if instance.product:
+            representation['product_info'] = {
+                'id': instance.product.id,
+                'title': instance.product.title,
+                'images': [{'url': img.url} for img in instance.product.images.all()]
+            }
+        return representation
+
     class Meta:
         model = ReviewAction
         fields = [

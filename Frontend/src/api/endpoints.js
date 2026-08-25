@@ -7,14 +7,12 @@ export const API_ENDPOINTS = {
   },
 
   results: {
-  list: "/api/results/",
-  detail: (id) => `/api/results/${id}/`,
-  product: (productId) =>
-    `/api/results/product/${productId}/`,
-  summary: "/api/results/summary/",
-  approve: (id) =>
-    `/api/results/${id}/approve/`,
-},
+    list: "/results/",
+    detail: (id) => `/results/${id}/`,
+    product: (productId) => `/results/product/${productId}/`,
+    summary: "/results/summary/",
+    approve: (id) => `/results/${id}/approve/`,
+  },
 
   imports: {
     list: "/imports/",
@@ -22,22 +20,17 @@ export const API_ENDPOINTS = {
     detail: (id) => `/imports/${id}/`,
   },
 
- taxonomy: {
+  taxonomy: {
     categories: "/taxonomy/categories/",
     search: "/taxonomy/search/",
-    product: (productId) =>
-      `/taxonomy/products/${productId}/`,
-    classifyProduct: (productId) =>
-      `/taxonomy/products/${productId}/classify/`,
+    product: (productId) => `/taxonomy/products/${productId}/`,
+    classifyProduct: (productId) => `/taxonomy/products/${productId}/classify/`,
     bulkClassify: "/taxonomy/products/classify/",
   },
 
   classification: {
-    detail: (id) => `/products/${id}/classification/`,
-  },
-
-  classification: {
     list: "/classification/",
+    detail: (id) => `/products/${id}/classification/`,
   },
 
   attributes: {
@@ -52,13 +45,10 @@ export const API_ENDPOINTS = {
 export default API_ENDPOINTS;
 
 export const CLASSIFICATION_ENDPOINTS = {
-  classifyProduct: (productId) =>
-    `/classification/products/${productId}/classify/`,
+  classifyProduct: (productId) => `/classification/products/${productId}/classify/`,
 
-  getClassification: (productId) =>
-    `/classification/classifications/${productId}/`,
+  getClassification: (productId) => `/classification/classifications/${productId}/`,
 
-  classifyImport: (importId) =>
-    `/classification/imports/${importId}/classify/`,
+  classifyImport: (importId) => `/classification/imports/${importId}/classify/`,
 };
 

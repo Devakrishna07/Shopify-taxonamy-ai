@@ -20,6 +20,17 @@ class ImportUploadView(APIView):
         FormParser,
     ]
 
+    def get(self, request):
+        jobs = ImportJob.objects.all().order_by("-id")[:10]
+        return Response(
+            ImportJobSerializer(
+                jobs,
+                many=True,
+                context={"request": request},
+            ).data,
+            status=status.HTTP_200_OK,
+        )
+
     def post(self, request):
 
         uploaded_file = request.FILES.get("file")

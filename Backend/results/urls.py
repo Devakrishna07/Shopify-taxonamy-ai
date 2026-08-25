@@ -5,6 +5,7 @@ from .views import (
     ResultDetailView,
     ProductResultView,
     ResultsSummaryView,
+    ResultApproveView,
 )
 
 
@@ -26,6 +27,12 @@ urlpatterns = [
         "product/<int:product_id>/",
         ProductResultView.as_view(),
         name="product-result"
+    ),
+
+    path(
+        "<int:pk>/approve/",
+        ResultApproveView.as_view(),
+        name="result-approve"
     ),
 
     path(

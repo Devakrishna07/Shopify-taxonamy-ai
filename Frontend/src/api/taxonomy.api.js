@@ -1,56 +1,15 @@
+
 import apiClient from "./client";
 
-
-/*
- * ============================================================
- * TAXONOMY API BASE
- * ============================================================
- *
- * client.js already adds:
- *
- *     http://127.0.0.1:8000/api
- *
- * Therefore these endpoints must NOT contain /api again.
- *
- * Final URLs become:
- *
- * GET /api/taxonomy/categories/
- * GET /api/taxonomy/search/
- * GET /api/taxonomy/attributes/
- * GET /api/taxonomy/values/
- * GET /api/taxonomy/products/<id>/
- * POST /api/taxonomy/products/<id>/classify/
- * POST /api/taxonomy/products/classify/
- */
-
-const TAXONOMY_BASE =
-  "/taxonomy";
+const TAXONOMY_BASE = "/taxonomy";
 
 
-/**
- * ============================================================
- * GET TAXONOMY CATEGORIES
- * ============================================================
- *
- * GET:
- *
- * /api/taxonomy/categories/
- *
- * Optional:
- *
- * ?level=1
- * ?root=true
- * ?leaf=true
- * ?search=shirt
- */
-export async function getTaxonomyCategories(
-  {
-    level = "",
-    root = "",
-    leaf = "",
-    search = "",
-  } = {}
-) {
+export async function getTaxonomyCategories({
+  level = "",
+  root = "",
+  leaf = "",
+  search = "",
+} = {}) {
   return apiClient.get(
     `${TAXONOMY_BASE}/categories/`,
     {
@@ -65,18 +24,7 @@ export async function getTaxonomyCategories(
 }
 
 
-/**
- * ============================================================
- * SEARCH TAXONOMY
- * ============================================================
- *
- * GET:
- *
- * /api/taxonomy/search/?q=shirt
- */
-export async function searchTaxonomy(
-  query
-) {
+export async function searchTaxonomy(query) {
   return apiClient.get(
     `${TAXONOMY_BASE}/search/`,
     {
@@ -88,20 +36,9 @@ export async function searchTaxonomy(
 }
 
 
-/**
- * ============================================================
- * GET TAXONOMY ATTRIBUTES
- * ============================================================
- *
- * GET:
- *
- * /api/taxonomy/attributes/
- */
-export async function getTaxonomyAttributes(
-  {
-    search = "",
-  } = {}
-) {
+export async function getTaxonomyAttributes({
+  search = "",
+} = {}) {
   return apiClient.get(
     `${TAXONOMY_BASE}/attributes/`,
     {
@@ -113,26 +50,10 @@ export async function getTaxonomyAttributes(
 }
 
 
-/**
- * ============================================================
- * GET TAXONOMY VALUES
- * ============================================================
- *
- * GET:
- *
- * /api/taxonomy/values/
- *
- * Optional:
- *
- * ?attribute=1
- * ?search=red
- */
-export async function getTaxonomyValues(
-  {
-    attribute = "",
-    search = "",
-  } = {}
-) {
+export async function getTaxonomyValues({
+  attribute = "",
+  search = "",
+} = {}) {
   return apiClient.get(
     `${TAXONOMY_BASE}/values/`,
     {
@@ -145,15 +66,6 @@ export async function getTaxonomyValues(
 }
 
 
-/**
- * ============================================================
- * GET CATEGORY ATTRIBUTES
- * ============================================================
- *
- * GET:
- *
- * /api/taxonomy/categories/<category_id>/attributes/
- */
 export async function getCategoryAttributes(
   categoryId
 ) {
@@ -169,15 +81,6 @@ export async function getCategoryAttributes(
 }
 
 
-/**
- * ============================================================
- * GET PRODUCT TAXONOMY
- * ============================================================
- *
- * GET:
- *
- * /api/taxonomy/products/<product_id>/
- */
 export async function getProductTaxonomy(
   productId
 ) {
@@ -193,15 +96,39 @@ export async function getProductTaxonomy(
 }
 
 
-/**
- * ============================================================
- * CLASSIFY PRODUCT
- * ============================================================
- *
- * POST:
- *
- * /api/taxonomy/products/<product_id>/classify/
- */
+export async function getProductTaxonomyResults({
+  search = "",
+  status = "",
+  classification = "",
+  category = "",
+  level = "",
+  page = 1,
+  pageSize = 50,
+} = {}) {
+  return apiClient.get(
+    `${TAXONOMY_BASE}/products/`,
+    {
+      params: {
+        search,
+        status,
+        classification,
+        category,
+        level,
+        page,
+        page_size: pageSize,
+      },
+    }
+  );
+}
+
+
+export async function getTaxonomyStats() {
+  return apiClient.get(
+    `${TAXONOMY_BASE}/stats/`
+  );
+}
+
+
 export async function classifyProduct(
   productId
 ) {
@@ -217,51 +144,80 @@ export async function classifyProduct(
 }
 
 
-/**
- * ============================================================
- * BULK CLASSIFICATION
- * ============================================================
- *
- * POST:
- *
- * /api/taxonomy/products/classify/
- *
- * Body:
- *
- * {
- *     "limit": 10
- * }
- */
-export async function bulkClassifyProducts(
-  limit = null
-) {
-  const body = {};
-
-  if (
-    limit !== null &&
-    limit !== undefined &&
-    limit !== ""
-  ) {
-    const numericLimit =
-      Number(limit);
-
-    if (
-      !Number.isInteger(
-        numericLimit
-      ) ||
-      numericLimit <= 0
-    ) {
-      throw new Error(
-        "Limit must be a positive integer."
-      );
+export async function bulkClassifyProducts({
+  limit = 10,
+  onlyUnclassified = true,
+} = {}) {
+  return apiClient.post(
+    `${TAXONOMY_BASE}/products/classify/`,
+    {
+      limit: Number(limit),
+      only_unclassified:
+        onlyUnclassified,
     }
+  );
+}
 
-    body.limit =
-      numericLimit;
+
+export async function approveProductTaxonomy(
+  productId,
+  categoryId
+) {
+  if (!productId) {
+    throw new Error(
+      "Product ID is required."
+    );
+  }
+
+  if (!categoryId) {
+    throw new Error(
+      "Category ID is required."
+    );
   }
 
   return apiClient.post(
-    `${TAXONOMY_BASE}/products/classify/`,
-    body
+    `${TAXONOMY_BASE}/products/${productId}/approve/`,
+    {
+      category_id: categoryId,
+    }
   );
 }
+
+
+export async function rejectProductTaxonomy(
+  productId,
+  reason = ""
+) {
+  if (!productId) {
+    throw new Error(
+      "Product ID is required."
+    );
+  }
+
+  return apiClient.post(
+    `${TAXONOMY_BASE}/products/${productId}/reject/`,
+    {
+      reason,
+    }
+  );
+}
+
+
+export default {
+  getTaxonomyCategories,
+  searchTaxonomy,
+  getTaxonomyAttributes,
+  getTaxonomyValues,
+  getCategoryAttributes,
+
+  getProductTaxonomy,
+  getProductTaxonomyResults,
+
+  getTaxonomyStats,
+
+  classifyProduct,
+  bulkClassifyProducts,
+
+  approveProductTaxonomy,
+  rejectProductTaxonomy,
+};

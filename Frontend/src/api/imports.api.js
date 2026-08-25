@@ -98,3 +98,22 @@ export async function getImport(importId) {
     throw error;
   }
 }
+
+/**
+ * Get a list of past imports.
+ *
+ * @returns {Promise} Axios response
+ */
+export async function getImports() {
+  const endpoint = API_ENDPOINTS.imports.list;
+  console.log("[Imports] Getting list of imports:", endpoint);
+
+  try {
+    const response = await apiClient.get(endpoint);
+    console.log("[Imports] Imports list response:", response);
+    return response;
+  } catch (error) {
+    console.error("[Imports] Get imports list failed:", error);
+    throw error;
+  }
+}
